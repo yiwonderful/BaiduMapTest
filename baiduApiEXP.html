@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <style type="text/css">
+        body, html, #allmap{width: 100%;height: 100%;overflow: hidden;margin:20px,20px,20px,20px;font-family:"微软雅黑";}
+    </style>
+    <!--AK 可以到官网注册即可获得  -->
+    <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=igKR7HoGyGiuEv0GlByLMHIj"></script>    
+    <title>添加行政区划</title>
+</head>
+<body>
+    <input type="text" id="txt" placeholder="湖北" value="" >
+    <button id="search" onclick="search()">查询</button>
+    <button id="clearUp" onclick="clearUp()">清空</button>
+    地图级别:<input type="text" id="zoomType" style="border: none" value="">
+    <div style="height:95%;padding:20px;">
+        <div id="allmap"></div>
+    </div>
+</body>
+</html>
+<script type="text/javascript">
+    var map = new BMap.Map("allmap");
+    function search(){
+    var cityName = '湖北';//
+    var txt=document.getElementById("txt").value;
+    // map.getZoom();
+    if(txt!="") cityName=txt;
+    map.centerAndZoom(cityName, 13);// 初始化地图,设置中心点坐标和地图级别。    
+    map.addControl(new BMap.ScaleControl());// 添加比例尺控件
+    map.addControl(new BMap.OverviewMapControl());//添加缩略地图控件(右下角的小标志)
+    map.enableScrollWheelZoom();
+    map.addControl(new BMap.NavigationControl({ type: BMAP_NAVIGATION_CONTROL_LARGE ,anchor: BMAP_ANCHOR_TOP_LEFT, showZoomInfo:true,offset: new BMap.Size(40, 250)}));//添加缩略地图控件
+    // BMAP_ANCHOR_TOP_LEFT:控件将定位到地图的左上角。
+    // BMAP_ANCHOR_TOP_RIGHT:控件将定位到地图的右上角。
+    // BMAP_ANCHOR_BOTTOM_LEFT:控件将定位到地图的左下角。
+    // BMAP_ANCHOR_BOTTOM_RIGHT:控件将定位到地图的右下角。
+    // anchor:控件的停靠位置。(enum ControlAnchor)
+    // offset:控件的水平偏移值。(Size)
+    // type:平移缩放控件的类型。(enum NavigationControlType)
+    // showZoomInfo:是否显示级别提示信息。(自 1.1 新增)(Boolean)
+    // enableGeolocation:控件是否集成定位功能，默认为false。(自 2.0 新增)(Boolean)
+
+    //<!--添加地图的遮罩  注：此方法级别适用于小于国家，zoom级别太大,遮罩有误-->
+    var bdary = new BMap.Boundary();
+    bdary.get(cityName, function (rs) {       //获取行政区域       
+        map.clearOverlays();        //清除地图覆盖物  
+        //网上查了下，东西经南北纬的范围
+        var EN_JW = "180, 90;";         //东北角
+        var NW_JW = "-180,  90;";       //西北角
+        var WS_JW = "-180, -90;";       //西南角
+        var SE_JW = "180, -90;";        //东南角
+        //4.添加环形遮罩层
+        var ply1 = new BMap.Polygon(rs.boundaries[0] + EN_JW + EN_JW + WS_JW + NW_JW + SE_JW + EN_JW, { strokeColor: "none", fillColor: "rgb(246,246,246)", fillOpacity:1, strokeOpacity: 0.5 }); //建立多边形覆盖物
+
+        map.addOverlay(ply1);  
+        //5. 给目标行政区划添加边框，其实就是给目标行政区划添加一个没有填充物的遮罩层
+        var ply = new BMap.Polygon(rs.boundaries[0], { strokeWeight: 2, strokeColor: "#00f",fillColor: "" });
+        map.addOverlay(ply); 
+        map.setViewport(ply.getPath());    //调整视野
+        //添加 标识
+        var opts = {
+                        position: new BMap.Point(113.902075,29.720364), // 指定文本标注所在的地理位置
+                        offset: new BMap.Size(0,0), //设置文本偏移量
+                        
+                    }
+        var label = new BMap.Label('标注点', opts);
+        label.setStyle({
+                        color: 'rgba(158, 45, 45, 0.6)',
+                        background: 'none',
+                        border: 0,
+                        textAlign: "center",
+                        height: "26px",
+                        lineHeight: "26px",
+                        letterSpacing:"26px",
+                        marginLeft:"30px",
+                        fontSize:"30px"
+                        });
+        map.addOverlay(label);            
+     });
+}
+     
+    //点击地图，获取经纬度坐标
+    map.addEventListener("click",function(e){
+        alert("坐标：（"+e.point.lng+","+e.point.lat+"）");
+        var marker = new BMap.Marker(new BMap.Point(114.308711,30.597721),{icon:""});
+        // 把标注添加到地图上
+        map.addOverlay(marker);
+        var content = "<table>";  
+        content = content + "<tr><td> 经度坐标："+e.point.lng+"</td></tr>";  
+        content = content + "<tr><td> 纬度坐标："+e.point.lat+"</td></tr>"; 
+        content = content + "<tr><td> 坐标：（"+e.point.lng+","+e.point.lat+"）</td></tr>";  
+        content += "</table>";
+        var infowindow = new BMap.InfoWindow(content);
+        //气泡窗体
+        marker.addEventListener("click",function(){
+                this.openInfoWindow(infowindow);
+            });
+        
+    });
+
+    //显示当前地图zoom级别
+    map.addEventListener("zoomstart",function(e){
+        document.getElementById("zoomType").value=map.getZoom();
+    })
+
+    function clearUp(){
+        document.getElementById("txt").value="";
+        search();
+    }
+    search();
+    </script>
